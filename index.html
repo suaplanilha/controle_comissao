@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Brava Moto - Honda</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    :root {
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --accent: #3b82f6;
+    }
+    body {
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+    }
+    .glass-input {
+      background: transparent !important;
+      border: 1px solid var(--glass-border);
+      color: white;
+      border-radius: 8px;
+    }
+    .glass-input:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    /* Estilo para selects transparente conforme pedido */
+    select.glass-input option {
+      background: #1e293b;
+      color: white;
+    }
+    .sidebar-item {
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .sidebar-item:hover, .sidebar-item.active {
+      background: var(--glass);
+      color: var(--accent);
+    }
+    .loader {
+      border-top-color: var(--accent);
+      animation: spinner 0.6s linear infinite;
+    }
+    @keyframes spinner { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="app" class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 glass-card m-4 mr-0 flex flex-col hidden md:flex">
+      <div class="p-6 text-2xl font-bold border-b border-white/10 flex items-center gap-2">
+        <i class="ri-fire-fill text-blue-500"></i> Projeto GAS
+      </div>
+      <nav class="flex-1 p-4 space-y-2">
+        <div @click="tab = 'dash'" :class="['sidebar-item p-3 rounded-lg flex items-center gap-3', tab === 'dash' ? 'active' : '']">
+          <i class="ri-dashboard-line"></i> Dashboard
+        </div>
+        <div @click="tab = 'vendas'" :class="['sidebar-item p-3 rounded-lg flex items-center gap-3', tab === 'vendas' ? 'active' : '']">
+          <i class="ri-user-add-line"></i> Vendas
+        </div>
+        <div @click="tab = 'financeiro'" :class="['sidebar-item p-3 rounded-lg flex items-center gap-3', tab === 'financeiro' ? 'active' : '']">
+          <i class="ri-money-dollar-box-line"></i> Financeiro
+        </div>
+      </nav>
+      <div class="p-4 border-t border-white/10 text-xs text-gray-500 text-center">
+        SAE Enterprise v1.0
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col p-4 overflow-hidden">
+      
+      <!-- Top Header -->
+      <header class="glass-card mb-4 p-4 flex justify-between items-center">
+        <h2 class="text-xl font-semibold capitalize">{{ tab }}</h2>
+        <div class="flex items-center gap-4">
+          <span v-if="loading" class="loader w-5 h-5 border-2 border-white/20 rounded-full"></span>
+          <button @click="openModal()" v-if="tab === 'vendas'" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm transition">
+            Nova Venda
+          </button>
+        </div>
+      </header>
+
+      <!-- Views -->
+      <div class="flex-1 overflow-y-auto pr-2 custom-scroll">
+        
+        <!-- Dashboard -->
+        <div v-if="tab === 'dash'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="glass-card p-6 border-l-4 border-blue-500">
+            <p class="text-gray-400 text-sm">Comissões (Mês Atual)</p>
+            <h3 class="text-3xl font-bold">R$ {{ stats.mes.toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</h3>
+          </div>
+          <div class="glass-card p-6 border-l-4 border-green-500">
+            <p class="text-gray-400 text-sm">Acumulado (Ano)</p>
+            <h3 class="text-3xl font-bold">R$ {{ stats.ano.toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</h3>
+          </div>
+          <div class="glass-card p-6 border-l-4 border-purple-500">
+            <p class="text-gray-400 text-sm">Vendas Ativas</p>
+            <h3 class="text-3xl font-bold">{{ db.length }}</h3>
+          </div>
+        </div>
+
+        <!-- Tabela de Vendas -->
+        <div v-if="tab === 'vendas'" class="glass-card overflow-hidden">
+          <table class="w-full text-left">
+            <thead class="bg-white/5 text-xs uppercase text-gray-400">
+              <tr>
+                <th class="p-4">Data</th>
+                <th class="p-4">Cliente</th>
+                <th class="p-4">Categoria</th>
+                <th class="p-4 text-right">Valor Bem</th>
+                <th class="p-4 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr v-for="item in paginatedData" :key="item.uuid" class="hover:bg-white/5 transition">
+                <td class="p-4 text-sm">{{ formatDate(item.data) }}</td>
+                <td class="p-4">
+                  <div class="font-medium">{{ item.nome }}</div>
+                  <div class="text-xs text-gray-500">{{ item.cpf }}</div>
+                </td>
+                <td class="p-4 text-sm">{{ item.categoria }}</td>
+                <td class="p-4 text-sm text-right font-mono">R$ {{ Number(item.valorBem).toLocaleString('pt-BR') }}</td>
+                <td class="p-4 text-center space-x-2">
+                  <button @click="openModal(item)" class="text-blue-400 hover:text-blue-300"><i class="ri-edit-line"></i></button>
+                  <button @click="confirmDelete(item.uuid)" class="text-red-400 hover:text-red-300"><i class="ri-delete-bin-line"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- Paginação -->
+          <div class="p-4 border-t border-white/5 flex justify-between items-center text-sm">
+            <span>Página {{ currentPage }} de {{ totalPages }}</span>
+            <div class="flex gap-2">
+              <button @click="currentPage--" :disabled="currentPage === 1" class="px-3 py-1 glass-card disabled:opacity-30">Ant</button>
+              <button @click="currentPage++" :disabled="currentPage === totalPages" class="px-3 py-1 glass-card disabled:opacity-30">Próx</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financeiro / Gestão de Comissões -->
+        <div v-if="tab === 'financeiro'" class="glass-card overflow-x-auto">
+          <table class="w-full text-left min-w-[1000px]">
+            <thead class="bg-white/5 text-xs uppercase text-gray-400">
+              <tr>
+                <th class="p-4">Cliente / Proposta</th>
+                <th class="p-4">Valor Bem</th>
+                <th class="p-4 text-center">P1 (%)</th>
+                <th class="p-4 text-center">P3 (%)</th>
+                <th class="p-4 text-right">A Receber</th>
+                <th class="p-4 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr v-for="item in db" :key="item.uuid" class="hover:bg-white/5 transition">
+                <td class="p-4">
+                  <div class="font-medium text-sm">{{ item.nome }}</div>
+                  <div class="text-xs text-blue-400">Prop: {{ item.proposta }}</div>
+                </td>
+                <td class="p-4 text-sm font-mono">R$ {{ Number(item.valorBem).toLocaleString('pt-BR') }}</td>
+                <td class="p-4 text-center">
+                  <span :class="item.p1_pago ? 'text-green-400' : 'text-orange-400'">
+                    {{ item.p1_pago ? 'PAGA' : 'PEND' }}
+                  </span>
+                  <div class="text-xs text-gray-500" v-if="item.p1_pago">{{ item.p1_percent }}%</div>
+                </td>
+                <td class="p-4 text-center">
+                  <span :class="item.p3_pago ? 'text-green-400' : 'text-orange-400'">
+                    {{ item.p3_pago ? 'PAGA' : 'PEND' }}
+                  </span>
+                  <div class="text-xs text-gray-500" v-if="item.p3_pago">{{ item.p3_percent }}%</div>
+                </td>
+                <td class="p-4 text-right font-bold text-green-400">
+                  R$ {{ calculateComissao(item).toLocaleString('pt-BR') }}
+                </td>
+                <td class="p-4 text-center">
+                  <button @click="openFinanceiroModal(item)" class="bg-blue-600/20 text-blue-400 px-3 py-1 rounded text-xs hover:bg-blue-600/40">
+                    Gerenciar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modal Venda -->
+    <div v-if="showModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="glass-card w-full max-w-lg p-6 animate-in fade-in zoom-in duration-300">
+        <h3 class="text-xl font-bold mb-6 flex justify-between">
+          {{ form.uuid ? 'Editar Venda' : 'Novo Cadastro' }}
+          <button @click="showModal = false" class="text-gray-400 hover:text-white">&times;</button>
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-400 mb-1">Nome Completo</label>
+            <input v-model="form.nome" type="text" class="w-full p-2 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">CPF</label>
+            <input v-model="form.cpf" type="text" class="w-full p-2 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Nº Proposta</label>
+            <input v-model="form.proposta" type="text" class="w-full p-2 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Categoria</label>
+            <select v-model="form.categoria" class="w-full p-2 glass-input">
+              <option value="Carro">Carro</option>
+              <option value="Moto">Moto</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Cota</label>
+            <input v-model="form.cota" type="number" class="w-full p-2 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Valor do Bem</label>
+            <input v-model="form.valorBem" type="number" class="w-full p-2 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Valor Parcela</label>
+            <input v-model="form.valorParcela" type="number" class="w-full p-2 glass-input">
+          </div>
+        </div>
+        <div class="mt-8 flex justify-end gap-3">
+          <button @click="showModal = false" class="px-6 py-2 rounded-lg hover:bg-white/5 transition">Cancelar</button>
+          <button @click="save" class="px-6 py-2 bg-blue-600 rounded-lg font-bold">Salvar Cadastro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Financeiro -->
+    <div v-if="showFinModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="glass-card w-full max-w-md p-6">
+        <h3 class="text-xl font-bold mb-2">Gestão de Comissões</h3>
+        <p class="text-sm text-gray-400 mb-6">{{ activeFin.nome }} | Bem: R$ {{ Number(activeFin.valorBem).toLocaleString() }}</p>
+        
+        <div class="space-y-6">
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-bold">1ª Parcela (P1)</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" v-model="activeFin.p1_pago" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
+            </div>
+            <div v-if="activeFin.p1_pago">
+              <label class="text-xs text-gray-400">Percentual da Comissão (%)</label>
+              <input v-model="activeFin.p1_percent" type="number" step="0.01" class="w-full p-2 glass-input mt-1" placeholder="Ex: 1.25">
+              <p class="text-xs text-blue-400 mt-2">Receber: R$ {{ ((activeFin.p1_percent/100) * activeFin.valorBem).toFixed(2) }}</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-bold">3ª Parcela (P3)</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" v-model="activeFin.p3_pago" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              </label>
+            </div>
+            <div v-if="activeFin.p3_pago">
+              <label class="text-xs text-gray-400">Percentual da Comissão (%)</label>
+              <input v-model="activeFin.p3_percent" type="number" step="0.01" class="w-full p-2 glass-input mt-1" placeholder="Ex: 0.90">
+              <p class="text-xs text-blue-400 mt-2">Receber: R$ {{ ((activeFin.p3_percent/100) * activeFin.valorBem).toFixed(2) }}</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-lg bg-blue-600/20 text-center">
+            <p class="text-xs text-gray-400">Total Acumulado Cliente</p>
+            <p class="text-2xl font-bold">R$ {{ calculateComissao(activeFin).toLocaleString('pt-BR') }}</p>
+          </div>
+        </div>
+
+        <div class="mt-8 flex gap-3">
+          <button @click="showFinModal = false" class="flex-1 py-2 rounded-lg hover:bg-white/5 transition">Fechar</button>
+          <button @click="saveFinanceiro" class="flex-1 py-2 bg-blue-600 rounded-lg font-bold">Salvar Alterações</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const tab = ref('dash');
+        const db = ref([]);
+        const loading = ref(false);
+        const showModal = ref(false);
+        const showFinModal = ref(false);
+        const currentPage = ref(1);
+        const itemsPerPage = 20;
+
+        const form = ref({
+          uuid: '', nome: '', cpf: '', proposta: '',
+          categoria: 'Carro', valorBem: 0, valorParcela: 0, cota: 1
+        });
+
+        const activeFin = ref({});
+
+        const fetchData = () => {
+          loading.ref = true;
+          google.script.run
+            .withSuccessHandler(data => {
+              db.value = data;
+              loading.value = false;
+            })
+            .getData();
+        };
+
+        const save = () => {
+          loading.value = true;
+          google.script.run
+            .withSuccessHandler(() => {
+              showModal.value = false;
+              fetchData();
+            })
+            .saveVenda(form.value);
+        };
+
+        const saveFinanceiro = () => {
+          loading.value = true;
+          google.script.run
+            .withSuccessHandler(() => {
+              showFinModal.value = false;
+              fetchData();
+            })
+            .saveVenda(activeFin.value);
+        };
+
+        const confirmDelete = (uuid) => {
+          if(confirm('Deseja excluir este cadastro?')) {
+            loading.value = true;
+            google.script.run
+              .withSuccessHandler(() => fetchData())
+              .softDelete(uuid);
+          }
+        };
+
+        const openModal = (item = null) => {
+          if (item) {
+            form.value = { ...item };
+          } else {
+            form.value = { uuid: '', nome: '', cpf: '', proposta: '', categoria: 'Carro', valorBem: 0, valorParcela: 0, cota: 1 };
+          }
+          showModal.value = true;
+        };
+
+        const openFinanceiroModal = (item) => {
+          activeFin.value = { ...item };
+          showFinModal.value = true;
+        };
+
+        const calculateComissao = (item) => {
+          let total = 0;
+          if (item.p1_pago && item.p1_percent) {
+            total += (Number(item.p1_percent) / 100) * Number(item.valorBem);
+          }
+          if (item.p3_pago && item.p3_percent) {
+            total += (Number(item.p3_percent) / 100) * Number(item.valorBem);
+          }
+          return total;
+        };
+
+        const stats = computed(() => {
+          const now = new Date();
+          let mesTotal = 0;
+          let anoTotal = 0;
+
+          db.value.forEach(item => {
+            const val = calculateComissao(item);
+            const dataVenda = new Date(item.data);
+            
+            if (dataVenda.getFullYear() === now.getFullYear()) {
+              anoTotal += val;
+              if (dataVenda.getMonth() === now.getMonth()) {
+                mesTotal += val;
+              }
+            }
+          });
+
+          return { mes: mesTotal, ano: anoTotal };
+        });
+
+        const paginatedData = computed(() => {
+          const start = (currentPage.value - 1) * itemsPerPage;
+          return db.value.slice(start, start + itemsPerPage);
+        });
+
+        const totalPages = computed(() => Math.ceil(db.value.length / itemsPerPage) || 1);
+
+        const formatDate = (iso) => {
+          if (!iso) return '-';
+          return new Date(iso).toLocaleDateString('pt-BR');
+        };
+
+        onMounted(fetchData);
+
+        return {
+          tab, db, loading, showModal, showFinModal, form, activeFin,
+          currentPage, itemsPerPage, paginatedData, totalPages,
+          openModal, openFinanceiroModal, save, saveFinanceiro, 
+          confirmDelete, calculateComissao, stats, formatDate
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
