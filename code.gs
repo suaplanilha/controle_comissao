@@ -1,5 +1,5 @@
 /**
- * Projeto GAS - Sistema de Gestão de Comissões
+ * Brava Moto - Sistema SAE de Gestão de Comissões
  * Padrão SAE (Sistema Apollo Enterprise)
  */
 
@@ -29,7 +29,7 @@ function setup() {
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Projeto GAS - SAE')
+    .setTitle('Brava Moto - Comissões SAE')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

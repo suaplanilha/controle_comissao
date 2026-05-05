@@ -1,8 +1,8 @@
-Documentação Técnica - Projeto GAS (SAE Enterprise)
+Documentação Técnica - Brava Moto Comissões SAE
 
 1. Visão Geral
 
-O Projeto GAS é um sistema de gestão de comissões para consultores de consórcios/veículos. O sistema permite o cadastro de clientes e o gerenciamento financeiro de comissões baseado no pagamento da 1ª e 3ª parcelas.
+O Brava Moto Comissões SAE é um sistema de gestão de comissões para consultores de consórcios/veículos. O sistema permite o cadastro de clientes e o gerenciamento financeiro de comissões baseado no pagamento da 1ª e 3ª parcelas.
 
 2. Arquitetura do Sistema
 
@@ -130,17 +130,23 @@ Acumulado Ano: Soma de todas as comissões do ano vigente.
 
 Seguindo o padrão Glassmorphism Dark:
 
-Inputs & Selects: Fundo transparente com bordas sutis (rgba(255, 255, 255, 0.1)).
+Identidade visual: Logo externo da empresa Brava Moto aplicado no header, sidebar/drawer e área inicial do dashboard.
 
-Feedback Visual: Uso de estados loading durante chamadas ao google.script.run.
+Inputs & Selects: Fundo glass com bordas sutis (rgba(255, 255, 255, 0.12)) e área mínima de toque para mobile.
 
-Navegação: Sidebar persistente para alternar entre Dashboard, Vendas e Financeiro.
+Feedback Visual: Uso de estados loading durante chamadas ao google.script.run e handler de erro para falhas de backend.
+
+Navegação: Sidebar persistente no desktop, drawer acionável por botão hambúrguer em mobile/tablet e bottom navigation fixa para acesso rápido a Dashboard, Vendas e Financeiro.
+
+Responsividade: Layout mobile-first com cards no dashboard, tabelas convertidas em cartões no celular e modais adaptados para telas verticais.
 
 Paginação: Limite de 20 registros por página na visualização de vendas.
 
+Rodapé/assinatura: @2026 - Sistema Apollo Eficiente - SAE - Leo.
+
 6. Funções Principais do Backend (Código.gs)
 
-setupData(): Inicializa a planilha e os cabeçalhos caso não existam.
+setup(): Inicializa a planilha e os cabeçalhos caso não existam.
 
 getData(): Recupera todos os registros ativos (deleted_at nulo).
 
