@@ -15,6 +15,7 @@
       --glass-border: rgba(255, 255, 255, 0.12);
       --accent: #3b82f6;
       --accent-2: #22c55e;
+      --warning: #facc15;
     }
 
     * { -webkit-tap-highlight-color: transparent; }
@@ -86,6 +87,16 @@
     .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 
     .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    .report-paper {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: white;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 18mm;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+    }
 
     @keyframes spinner { to { transform: rotate(360deg); } }
 
@@ -123,6 +134,13 @@
         letter-spacing: 0.04em;
         text-align: left;
       }
+
+      .report-paper {
+        width: 100%;
+        min-height: auto;
+        padding: 1rem;
+        border-radius: 16px;
+      }
     }
   </style>
 </head>
@@ -145,6 +163,12 @@
           <button @click="mobileMenuOpen = false" class="ml-auto h-10 w-10 rounded-xl hover:bg-white/10 lg:hidden" aria-label="Fechar menu">
             <i class="ri-close-line text-xl"></i>
           </button>
+        </div>
+
+        <div class="mx-4 mt-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-500">Perfil logado</p>
+          <p class="mt-1 font-bold text-slate-100 truncate">{{ profileName }}</p>
+          <button @click="setTab('config')" class="mt-3 text-xs text-blue-300 hover:text-blue-200">Personalizar perfil</button>
         </div>
 
         <nav class="flex-1 p-4 space-y-2" aria-label="Navegação principal">
@@ -172,7 +196,7 @@
             </button>
             <img src="https://i.ibb.co/Xk8YLvsV/profile-bravamoto.jpg" alt="profile bravamoto" class="h-11 w-11 rounded-2xl object-cover border border-white/20 hidden sm:block lg:hidden">
             <div class="min-w-0">
-              <p class="text-xs uppercase tracking-[0.24em] text-blue-200/70 hidden sm:block">Brava Moto</p>
+              <p class="text-xs uppercase tracking-[0.24em] text-blue-200/70 hidden sm:block">{{ profileName }}</p>
               <h2 class="text-lg sm:text-xl font-semibold capitalize truncate">{{ currentTabLabel }}</h2>
             </div>
           </div>
@@ -192,25 +216,47 @@
           <section v-if="tab === 'dash'" class="space-y-6">
             <div class="glass-card p-4 sm:p-6 flex flex-col md:flex-row md:items-center gap-4">
               <img src="https://i.ibb.co/Xk8YLvsV/profile-bravamoto.jpg" alt="profile bravamoto" class="h-20 w-20 rounded-3xl object-cover border border-white/20 shadow-xl">
-              <div>
-                <p class="text-sm text-blue-200/80">Sistema Apollo Eficiente</p>
+              <div class="flex-1">
+                <p class="text-sm text-blue-200/80">Sistema Apollo Enterprise</p>
                 <h1 class="text-2xl sm:text-3xl font-bold">Gestão de Comissões Brava Moto</h1>
-                <p class="text-slate-400 mt-1">ERP SaaS em Google Apps Script para acompanhar vendas, parcelas e comissões com navegação otimizada para celular, tablet e desktop.</p>
+                <p class="text-slate-400 mt-1">Olá, {{ profileName }}. Acompanhe vendas, parcelas, comissões e relatórios com filtros por período.</p>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div class="glass-card p-4 sm:p-5">
+              <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+                <div class="flex-1">
+                  <h3 class="font-bold">Filtros do Dashboard</h3>
+                  <p class="text-xs text-slate-400">O período afeta Comissões do período, Vendas Ativas e Valor Total de Vendas. O Acumulado Ano permanece anual.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto">
+                  <label class="text-xs text-slate-400">Data início
+                    <input v-model="dashboardFilter.start" type="date" class="mt-1 w-full p-3 glass-input">
+                  </label>
+                  <label class="text-xs text-slate-400">Data fim
+                    <input v-model="dashboardFilter.end" type="date" class="mt-1 w-full p-3 glass-input">
+                  </label>
+                </div>
+                <button @click="resetDashboardFilter" class="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-sm font-semibold">Mês atual</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
               <div class="glass-card p-5 sm:p-6 border-l-4 border-blue-500">
-                <p class="text-gray-400 text-sm">Comissões (Mês Atual)</p>
-                <h3 class="text-2xl sm:text-3xl font-bold">R$ {{ stats.mes.toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</h3>
+                <p class="text-gray-400 text-sm">Comissões (Período)</p>
+                <h3 class="text-2xl sm:text-3xl font-bold">{{ formatCurrency(stats.periodoComissao) }}</h3>
               </div>
               <div class="glass-card p-5 sm:p-6 border-l-4 border-green-500">
                 <p class="text-gray-400 text-sm">Acumulado (Ano)</p>
-                <h3 class="text-2xl sm:text-3xl font-bold">R$ {{ stats.ano.toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</h3>
+                <h3 class="text-2xl sm:text-3xl font-bold">{{ formatCurrency(stats.ano) }}</h3>
               </div>
-              <div class="glass-card p-5 sm:p-6 border-l-4 border-purple-500 sm:col-span-2 xl:col-span-1">
-                <p class="text-gray-400 text-sm">Vendas Ativas</p>
-                <h3 class="text-2xl sm:text-3xl font-bold">{{ db.length }}</h3>
+              <div class="glass-card p-5 sm:p-6 border-l-4 border-purple-500">
+                <p class="text-gray-400 text-sm">Vendas Ativas (Período)</p>
+                <h3 class="text-2xl sm:text-3xl font-bold">{{ stats.vendasAtivas }}</h3>
+              </div>
+              <div class="glass-card p-5 sm:p-6 border-l-4 border-yellow-400">
+                <p class="text-gray-400 text-sm">Valor Total de Vendas</p>
+                <h3 class="text-2xl sm:text-3xl font-bold">{{ formatCurrency(stats.valorTotalVendas) }}</h3>
               </div>
             </div>
           </section>
@@ -220,43 +266,62 @@
             <div class="p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h3 class="font-bold">Vendas cadastradas</h3>
-                <p class="text-xs text-slate-400">Em telas pequenas os dados viram cartões para ocultar detalhes sem perder navegação.</p>
+                <p class="text-xs text-slate-400">Detalhes comerciais, nascimento/idade, brindes, lance e contemplação.</p>
               </div>
               <span class="text-xs text-slate-400">{{ db.length }} registros</span>
             </div>
-            <table class="w-full text-left md:min-w-[760px]">
-              <thead class="bg-white/5 text-xs uppercase text-gray-400">
-                <tr>
-                  <th class="p-4">Data</th>
-                  <th class="p-4">Cliente</th>
-                  <th class="p-4">Categoria</th>
-                  <th class="p-4 text-right">Valor Bem</th>
-                  <th class="p-4 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/5 md:divide-y">
-                <tr v-for="item in paginatedData" :key="item.uuid" class="hover:bg-white/5 transition">
-                  <td class="p-4 text-sm" data-label="Data">{{ formatDate(item.data) }}</td>
-                  <td class="p-4" data-label="Cliente">
-                    <div>
-                      <div class="font-medium">{{ item.nome || 'Sem nome' }}</div>
-                      <div class="text-xs text-gray-500">{{ item.cpf || 'CPF não informado' }}</div>
-                    </div>
-                  </td>
-                  <td class="p-4 text-sm" data-label="Categoria">{{ item.categoria }}</td>
-                  <td class="p-4 text-sm text-right font-mono" data-label="Valor Bem">R$ {{ Number(item.valorBem || 0).toLocaleString('pt-BR') }}</td>
-                  <td class="p-4 text-center" data-label="Ações">
-                    <div class="flex justify-end md:justify-center gap-3">
-                      <button @click="openModal(item)" class="h-10 w-10 rounded-xl bg-blue-600/15 text-blue-300 hover:bg-blue-600/30" aria-label="Editar venda"><i class="ri-edit-line"></i></button>
-                      <button @click="confirmDelete(item.uuid)" class="h-10 w-10 rounded-xl bg-red-600/15 text-red-300 hover:bg-red-600/30" aria-label="Excluir venda"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="!paginatedData.length">
-                  <td colspan="5" class="p-8 text-center text-slate-400">Nenhuma venda cadastrada ainda.</td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="overflow-x-auto custom-scroll">
+              <table class="w-full text-left md:min-w-[1180px]">
+                <thead class="bg-white/5 text-xs uppercase text-gray-400">
+                  <tr>
+                    <th class="p-4">Data</th>
+                    <th class="p-4">Cliente</th>
+                    <th class="p-4">Nascimento / Idade</th>
+                    <th class="p-4">Categoria</th>
+                    <th class="p-4 text-right">Valor Bem</th>
+                    <th class="p-4 text-right">Lance</th>
+                    <th class="p-4 text-center">Contemplação</th>
+                    <th class="p-4">Brinde</th>
+                    <th class="p-4 text-center">Desc. P1</th>
+                    <th class="p-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 md:divide-y">
+                  <tr v-for="item in paginatedData" :key="item.uuid" class="hover:bg-white/5 transition">
+                    <td class="p-4 text-sm" data-label="Data">{{ formatDate(item.data) }}</td>
+                    <td class="p-4" data-label="Cliente">
+                      <div>
+                        <div class="font-medium">{{ item.nome || 'Sem nome' }}</div>
+                        <div class="text-xs text-gray-500">{{ item.cpf || 'CPF não informado' }} • Prop. {{ item.proposta || '-' }}</div>
+                      </div>
+                    </td>
+                    <td class="p-4 text-sm" data-label="Nascimento / Idade">
+                      <div class="flex flex-col items-end md:items-start gap-1">
+                        <span>{{ formatDate(item.dataNascimento) }}</span>
+                        <span class="inline-flex rounded-full bg-yellow-400/20 px-2 py-1 text-xs font-bold text-yellow-200">{{ calculateAge(item.dataNascimento) || '-' }} anos</span>
+                      </div>
+                    </td>
+                    <td class="p-4 text-sm" data-label="Categoria">{{ item.categoria }}</td>
+                    <td class="p-4 text-sm text-right font-mono" data-label="Valor Bem">{{ formatCurrency(item.valorBem) }}</td>
+                    <td class="p-4 text-sm text-right font-mono" data-label="Lance">{{ formatCurrency(item.lanceValor) }}</td>
+                    <td class="p-4 text-center" data-label="Contemplação">
+                      <span :class="item.contemplacaoGarantida ? 'text-green-300' : 'text-slate-400'">{{ item.contemplacaoGarantida ? 'Garantida' : 'Não' }}</span>
+                    </td>
+                    <td class="p-4 text-sm" data-label="Brinde">{{ item.brinde || '-' }}</td>
+                    <td class="p-4 text-center text-sm" data-label="Desc. P1">{{ Number(item.descontoPrimeiraParcela || 0).toLocaleString('pt-BR') }}%</td>
+                    <td class="p-4 text-center" data-label="Ações">
+                      <div class="flex justify-end md:justify-center gap-3">
+                        <button @click="openModal(item)" class="h-10 w-10 rounded-xl bg-blue-600/15 text-blue-300 hover:bg-blue-600/30" aria-label="Editar venda"><i class="ri-edit-line"></i></button>
+                        <button @click="confirmDelete(item.uuid)" class="h-10 w-10 rounded-xl bg-red-600/15 text-red-300 hover:bg-red-600/30" aria-label="Excluir venda"><i class="ri-delete-bin-line"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="!paginatedData.length">
+                    <td colspan="10" class="p-8 text-center text-slate-400">Nenhuma venda cadastrada ainda.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <!-- Paginação -->
             <div class="p-4 border-t border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-3 text-sm">
               <span>Página {{ currentPage }} de {{ totalPages }}</span>
@@ -268,57 +333,163 @@
           </section>
 
           <!-- Financeiro / Gestão de Comissões -->
-          <section v-if="tab === 'financeiro'" class="glass-card mobile-card-list overflow-hidden">
-            <div class="p-4 border-b border-white/5">
-              <h3 class="font-bold">Financeiro</h3>
-              <p class="text-xs text-slate-400">Controle P1/P3 e valores a receber por cliente.</p>
+          <section v-if="tab === 'financeiro'" class="space-y-6">
+            <div class="glass-card p-4 sm:p-5">
+              <div class="flex flex-col xl:flex-row xl:items-end gap-4">
+                <div class="flex-1">
+                  <h3 class="font-bold">Relatórios de comissões</h3>
+                  <p class="text-xs text-slate-400">Filtre o período, pré-visualize em A4 executivo e gere PDF pelo diálogo de impressão.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full xl:w-auto">
+                  <label class="text-xs text-slate-400">Data início
+                    <input v-model="reportFilter.start" type="date" class="mt-1 w-full p-3 glass-input">
+                  </label>
+                  <label class="text-xs text-slate-400">Data fim
+                    <input v-model="reportFilter.end" type="date" class="mt-1 w-full p-3 glass-input">
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full xl:w-auto">
+                  <button @click="previewReport = true" class="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-sm font-bold">Pré-visualizar</button>
+                  <button @click="printReport" :disabled="!previewReport" class="px-4 py-3 rounded-2xl bg-green-600 hover:bg-green-700 text-sm font-bold disabled:opacity-40">Gerar PDF</button>
+                </div>
+              </div>
             </div>
-            <table class="w-full text-left md:min-w-[900px]">
-              <thead class="bg-white/5 text-xs uppercase text-gray-400">
-                <tr>
-                  <th class="p-4">Cliente / Proposta</th>
-                  <th class="p-4">Valor Bem</th>
-                  <th class="p-4 text-center">P1 (%)</th>
-                  <th class="p-4 text-center">P3 (%)</th>
-                  <th class="p-4 text-right">A Receber</th>
-                  <th class="p-4 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/5 md:divide-y">
-                <tr v-for="item in db" :key="item.uuid" class="hover:bg-white/5 transition">
-                  <td class="p-4" data-label="Cliente">
+
+            <div class="glass-card mobile-card-list overflow-hidden">
+              <div class="p-4 border-b border-white/5">
+                <h3 class="font-bold">Financeiro</h3>
+                <p class="text-xs text-slate-400">Controle P1/P3 e valores a receber por cliente.</p>
+              </div>
+              <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left md:min-w-[900px]">
+                  <thead class="bg-white/5 text-xs uppercase text-gray-400">
+                    <tr>
+                      <th class="p-4">Cliente / Proposta</th>
+                      <th class="p-4">Valor Bem</th>
+                      <th class="p-4 text-center">P1 (%)</th>
+                      <th class="p-4 text-center">P3 (%)</th>
+                      <th class="p-4 text-right">A Receber</th>
+                      <th class="p-4 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-white/5 md:divide-y">
+                    <tr v-for="item in db" :key="item.uuid" class="hover:bg-white/5 transition">
+                      <td class="p-4" data-label="Cliente">
+                        <div>
+                          <div class="font-medium text-sm">{{ item.nome || 'Sem nome' }}</div>
+                          <div class="text-xs text-blue-400">Prop: {{ item.proposta || '-' }}</div>
+                        </div>
+                      </td>
+                      <td class="p-4 text-sm font-mono" data-label="Valor Bem">{{ formatCurrency(item.valorBem) }}</td>
+                      <td class="p-4 text-center" data-label="P1">
+                        <span :class="item.p1_pago ? 'text-green-400' : 'text-orange-400'">{{ item.p1_pago ? 'PAGA' : 'PEND' }}</span>
+                        <div class="text-xs text-gray-500" v-if="item.p1_pago">{{ item.p1_percent }}%</div>
+                      </td>
+                      <td class="p-4 text-center" data-label="P3">
+                        <span :class="item.p3_pago ? 'text-green-400' : 'text-orange-400'">{{ item.p3_pago ? 'PAGA' : 'PEND' }}</span>
+                        <div class="text-xs text-gray-500" v-if="item.p3_pago">{{ item.p3_percent }}%</div>
+                      </td>
+                      <td class="p-4 text-right font-bold text-green-400" data-label="A Receber">{{ formatCurrency(calculateComissao(item)) }}</td>
+                      <td class="p-4 text-center" data-label="Ações">
+                        <button @click="openFinanceiroModal(item)" class="w-full md:w-auto bg-blue-600/20 text-blue-300 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600/40">
+                          Gerenciar
+                        </button>
+                      </td>
+                    </tr>
+                    <tr v-if="!db.length">
+                      <td colspan="6" class="p-8 text-center text-slate-400">Nenhum dado financeiro disponível.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div v-if="previewReport" class="glass-card p-3 sm:p-5 overflow-x-auto custom-scroll">
+              <div id="report-canvas" class="report-paper">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                  <div class="flex items-center gap-4">
+                    <img src="https://i.ibb.co/Xk8YLvsV/profile-bravamoto.jpg" alt="profile bravamoto" class="h-16 w-16 rounded-2xl object-cover border border-slate-200">
                     <div>
-                      <div class="font-medium text-sm">{{ item.nome || 'Sem nome' }}</div>
-                      <div class="text-xs text-blue-400">Prop: {{ item.proposta || '-' }}</div>
+                      <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Brava Moto</p>
+                      <h1 class="text-2xl font-bold text-slate-950">Relatórios de comissões</h1>
+                      <p class="text-sm text-slate-600">Vendedor: {{ profileName }}</p>
                     </div>
-                  </td>
-                  <td class="p-4 text-sm font-mono" data-label="Valor Bem">R$ {{ Number(item.valorBem || 0).toLocaleString('pt-BR') }}</td>
-                  <td class="p-4 text-center" data-label="P1">
-                    <span :class="item.p1_pago ? 'text-green-400' : 'text-orange-400'">{{ item.p1_pago ? 'PAGA' : 'PEND' }}</span>
-                    <div class="text-xs text-gray-500" v-if="item.p1_pago">{{ item.p1_percent }}%</div>
-                  </td>
-                  <td class="p-4 text-center" data-label="P3">
-                    <span :class="item.p3_pago ? 'text-green-400' : 'text-orange-400'">{{ item.p3_pago ? 'PAGA' : 'PEND' }}</span>
-                    <div class="text-xs text-gray-500" v-if="item.p3_pago">{{ item.p3_percent }}%</div>
-                  </td>
-                  <td class="p-4 text-right font-bold text-green-400" data-label="A Receber">R$ {{ calculateComissao(item).toLocaleString('pt-BR') }}</td>
-                  <td class="p-4 text-center" data-label="Ações">
-                    <button @click="openFinanceiroModal(item)" class="w-full md:w-auto bg-blue-600/20 text-blue-300 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600/40">
-                      Gerenciar
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!db.length">
-                  <td colspan="6" class="p-8 text-center text-slate-400">Nenhum dado financeiro disponível.</td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                  <div class="text-right text-xs text-slate-500">
+                    <p>Período filtrado</p>
+                    <p class="font-bold text-slate-900">{{ formatDate(reportFilter.start) }} até {{ formatDate(reportFilter.end) }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-8 overflow-x-auto">
+                  <table class="w-full border-collapse text-sm">
+                    <thead>
+                      <tr class="bg-slate-900 text-white">
+                        <th class="border border-slate-300 p-2 text-left">Data venda</th>
+                        <th class="border border-slate-300 p-2 text-left">Proposta</th>
+                        <th class="border border-slate-300 p-2 text-right">Valor Bem</th>
+                        <th class="border border-slate-300 p-2 text-center">P1</th>
+                        <th class="border border-slate-300 p-2 text-center">%</th>
+                        <th class="border border-slate-300 p-2 text-center">P3</th>
+                        <th class="border border-slate-300 p-2 text-center">%</th>
+                        <th class="border border-slate-300 p-2 text-right">Comissão</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in reportRows" :key="item.uuid">
+                        <td class="border border-slate-300 p-2">{{ formatDate(item.data) }}</td>
+                        <td class="border border-slate-300 p-2">{{ item.proposta || '-' }}</td>
+                        <td class="border border-slate-300 p-2 text-right">{{ formatCurrency(item.valorBem) }}</td>
+                        <td class="border border-slate-300 p-2 text-center">{{ item.p1_pago ? 'Paga' : 'Pendente' }}</td>
+                        <td class="border border-slate-300 p-2 text-center">{{ Number(item.p1_percent || 0).toLocaleString('pt-BR') }}%</td>
+                        <td class="border border-slate-300 p-2 text-center">{{ item.p3_pago ? 'Paga' : 'Pendente' }}</td>
+                        <td class="border border-slate-300 p-2 text-center">{{ Number(item.p3_percent || 0).toLocaleString('pt-BR') }}%</td>
+                        <td class="border border-slate-300 p-2 text-right font-bold">{{ formatCurrency(calculateComissao(item)) }}</td>
+                      </tr>
+                      <tr v-if="!reportRows.length">
+                        <td colspan="8" class="border border-slate-300 p-6 text-center text-slate-500">Nenhuma comissão no período selecionado.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="mt-8 rounded-2xl bg-slate-100 p-5 text-right">
+                  <p class="text-sm text-slate-500">Total de comissões para o período</p>
+                  <p class="text-3xl font-black text-slate-950">{{ formatCurrency(reportTotal) }}</p>
+                </div>
+
+                <p class="mt-10 text-center text-xs text-slate-400">@2026 - Sistema Apollo Eficiente - SAE - Leo</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Configurações -->
+          <section v-if="tab === 'config'" class="space-y-6">
+            <div class="glass-card p-5 sm:p-6">
+              <div class="flex flex-col md:flex-row md:items-center gap-4">
+                <img src="https://i.ibb.co/Xk8YLvsV/profile-bravamoto.jpg" alt="profile bravamoto" class="h-20 w-20 rounded-3xl object-cover border border-white/20 shadow-xl">
+                <div>
+                  <p class="text-sm text-blue-200/80">Perfil do usuário logado</p>
+                  <h3 class="text-2xl font-bold">{{ profileName }}</h3>
+                  <p class="text-slate-400 mt-1">Personalize o nome do vendedor que aparecerá no sistema e nos relatórios executivos.</p>
+                </div>
+              </div>
+            </div>
+
+            <form @submit.prevent="saveConfig" class="glass-card p-5 sm:p-6 max-w-2xl space-y-5">
+              <div>
+                <label class="block text-sm font-semibold mb-2">Nome do usuário/vendedor</label>
+                <input v-model="configForm.vendedorNome" type="text" class="w-full p-3 glass-input" placeholder="Ex: Leonardo Silva">
+                <p class="mt-2 text-xs text-slate-400">O nome será salvo na aba db_configuracoes da planilha e usado como perfil do usuário logado.</p>
+              </div>
+              <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 font-bold">Salvar Configurações</button>
+            </form>
           </section>
         </div>
 
         <!-- Bottom Navigation Mobile/Tablet -->
-        <nav class="fixed left-3 right-3 bottom-3 z-40 glass-header safe-bottom p-2 grid grid-cols-3 gap-2 lg:hidden" aria-label="Navegação rápida">
-          <button v-for="item in navItems" :key="item.id" @click="setTab(item.id)" :class="['rounded-2xl py-2 px-1 text-xs flex flex-col items-center gap-1 transition', tab === item.id ? 'bg-blue-600/25 text-blue-100' : 'text-slate-400']">
+        <nav class="fixed left-3 right-3 bottom-3 z-40 glass-header safe-bottom p-2 grid grid-cols-4 gap-2 lg:hidden" aria-label="Navegação rápida">
+          <button v-for="item in navItems" :key="item.id" @click="setTab(item.id)" :class="['rounded-2xl py-2 px-1 text-[0.68rem] flex flex-col items-center gap-1 transition', tab === item.id ? 'bg-blue-600/25 text-blue-100' : 'text-slate-400']">
             <i :class="[item.icon, 'text-lg']"></i>
             <span>{{ item.short }}</span>
           </button>
@@ -328,13 +499,13 @@
 
     <!-- Modal Venda -->
     <div v-if="showModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 z-50">
-      <div class="glass-card w-full max-w-lg max-h-[92vh] overflow-y-auto custom-scroll p-5 sm:p-6 animate-in fade-in zoom-in duration-300">
+      <div class="glass-card w-full max-w-3xl max-h-[92vh] overflow-y-auto custom-scroll p-5 sm:p-6 animate-in fade-in zoom-in duration-300">
         <h3 class="text-xl font-bold mb-6 flex justify-between items-center">
           {{ form.uuid ? 'Editar Venda' : 'Novo Cadastro' }}
           <button @click="showModal = false" class="h-10 w-10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10" aria-label="Fechar modal">&times;</button>
         </h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="sm:col-span-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="sm:col-span-2 lg:col-span-3">
             <label class="block text-xs text-gray-400 mb-1">Nome Completo</label>
             <input v-model="form.nome" type="text" class="w-full p-3 glass-input">
           </div>
@@ -345,6 +516,11 @@
           <div>
             <label class="block text-xs text-gray-400 mb-1">Nº Proposta</label>
             <input v-model="form.proposta" type="text" class="w-full p-3 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Data de nascimento</label>
+            <input v-model="form.dataNascimento" type="date" class="w-full p-3 glass-input">
+            <p class="mt-2 text-xs text-yellow-200" v-if="form.dataNascimento">Idade calculada: <span class="rounded-full bg-yellow-400/20 px-2 py-1 font-bold">{{ calculateAge(form.dataNascimento) }} anos</span></p>
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1">Categoria</label>
@@ -358,12 +534,40 @@
             <input v-model="form.cota" type="number" class="w-full p-3 glass-input">
           </div>
           <div>
+            <label class="block text-xs text-gray-400 mb-1">Brinde</label>
+            <select v-model="form.brinde" class="w-full p-3 glass-input">
+              <option value="Brinde Aleatório">Brinde Aleatório</option>
+              <option value="Capacete">Capacete</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-xs text-gray-400 mb-1">Valor do Bem</label>
-            <input v-model="form.valorBem" type="number" class="w-full p-3 glass-input">
+            <input v-model="form.valorBem" type="number" step="0.01" class="w-full p-3 glass-input">
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1">Valor Parcela</label>
-            <input v-model="form.valorParcela" type="number" class="w-full p-3 glass-input">
+            <input v-model="form.valorParcela" type="number" step="0.01" class="w-full p-3 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Valor (R$) do lance</label>
+            <input v-model="form.lanceValor" type="number" step="0.01" class="w-full p-3 glass-input">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Teve desconto na primeira parcela? (%)</label>
+            <input v-model="form.descontoPrimeiraParcela" type="number" step="0.01" class="w-full p-3 glass-input">
+            <p class="mt-2 text-xs text-slate-500">Campo informativo. Não altera cálculo de comissão.</p>
+          </div>
+          <div class="sm:col-span-2 lg:col-span-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <label class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer">
+              <div>
+                <span class="font-bold">É garantido contemplação?</span>
+                <p class="text-sm text-slate-400">Ative quando a venda possuir garantia de contemplação. Desativado indica fluxo normal.</p>
+              </div>
+              <span class="relative inline-flex items-center">
+                <input type="checkbox" v-model="form.contemplacaoGarantida" class="sr-only peer">
+                <span class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all"></span>
+              </span>
+            </label>
           </div>
         </div>
         <div class="mt-8 grid grid-cols-1 sm:flex sm:justify-end gap-3">
@@ -377,7 +581,7 @@
     <div v-if="showFinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 z-50">
       <div class="glass-card w-full max-w-md max-h-[92vh] overflow-y-auto custom-scroll p-5 sm:p-6">
         <h3 class="text-xl font-bold mb-2">Gestão de Comissões</h3>
-        <p class="text-sm text-gray-400 mb-6">{{ activeFin.nome }} | Bem: R$ {{ Number(activeFin.valorBem || 0).toLocaleString('pt-BR') }}</p>
+        <p class="text-sm text-gray-400 mb-6">{{ activeFin.nome }} | Bem: {{ formatCurrency(activeFin.valorBem) }}</p>
 
         <div class="space-y-6">
           <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
@@ -391,7 +595,7 @@
             <div v-if="activeFin.p1_pago">
               <label class="text-xs text-gray-400">Percentual da Comissão (%)</label>
               <input v-model="activeFin.p1_percent" type="number" step="0.01" class="w-full p-3 glass-input mt-1" placeholder="Ex: 1.25">
-              <p class="text-xs text-blue-400 mt-2">Receber: R$ {{ ((Number(activeFin.p1_percent || 0) / 100) * Number(activeFin.valorBem || 0)).toFixed(2) }}</p>
+              <p class="text-xs text-blue-400 mt-2">Receber: {{ formatCurrency((Number(activeFin.p1_percent || 0) / 100) * Number(activeFin.valorBem || 0)) }}</p>
             </div>
           </div>
 
@@ -406,13 +610,13 @@
             <div v-if="activeFin.p3_pago">
               <label class="text-xs text-gray-400">Percentual da Comissão (%)</label>
               <input v-model="activeFin.p3_percent" type="number" step="0.01" class="w-full p-3 glass-input mt-1" placeholder="Ex: 0.90">
-              <p class="text-xs text-blue-400 mt-2">Receber: R$ {{ ((Number(activeFin.p3_percent || 0) / 100) * Number(activeFin.valorBem || 0)).toFixed(2) }}</p>
+              <p class="text-xs text-blue-400 mt-2">Receber: {{ formatCurrency((Number(activeFin.p3_percent || 0) / 100) * Number(activeFin.valorBem || 0)) }}</p>
             </div>
           </div>
 
           <div class="p-4 rounded-2xl bg-blue-600/20 text-center">
             <p class="text-xs text-gray-400">Total Acumulado Cliente</p>
-            <p class="text-2xl font-bold">R$ {{ calculateComissao(activeFin).toLocaleString('pt-BR') }}</p>
+            <p class="text-2xl font-bold">{{ formatCurrency(calculateComissao(activeFin)) }}</p>
           </div>
         </div>
 
@@ -432,7 +636,8 @@
         const navItems = [
           { id: 'dash', label: 'Dashboard', short: 'Início', icon: 'ri-dashboard-line' },
           { id: 'vendas', label: 'Vendas', short: 'Vendas', icon: 'ri-user-add-line' },
-          { id: 'financeiro', label: 'Financeiro', short: 'Financeiro', icon: 'ri-money-dollar-box-line' }
+          { id: 'financeiro', label: 'Financeiro', short: 'Fin.', icon: 'ri-money-dollar-box-line' },
+          { id: 'config', label: 'Configurações', short: 'Config', icon: 'ri-settings-3-line' }
         ];
         const tab = ref('dash');
         const db = ref([]);
@@ -440,28 +645,52 @@
         const mobileMenuOpen = ref(false);
         const showModal = ref(false);
         const showFinModal = ref(false);
+        const previewReport = ref(false);
         const currentPage = ref(1);
         const itemsPerPage = 20;
 
-        const form = ref({
-          uuid: '', nome: '', cpf: '', proposta: '',
-          categoria: 'Carro', valorBem: 0, valorParcela: 0, cota: 1
+        const defaultVenda = () => ({
+          uuid: '', nome: '', cpf: '', proposta: '', categoria: 'Carro',
+          valorBem: 0, valorParcela: 0, cota: 1, lanceValor: 0,
+          contemplacaoGarantida: false, dataNascimento: '', brinde: 'Brinde Aleatório',
+          descontoPrimeiraParcela: 0
         });
 
+        const form = ref(defaultVenda());
         const activeFin = ref({});
+        const configForm = ref({ vendedorNome: '' });
+        const dashboardFilter = ref(defaultPeriod());
+        const reportFilter = ref(defaultPeriod());
+
+        const profileName = computed(() => configForm.value.vendedorNome || 'Vendedor Brava Moto');
+        const currentTabLabel = computed(() => navItems.find(item => item.id === tab.value)?.label || 'Dashboard');
+
+        function defaultPeriod() {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), now.getMonth(), 1);
+          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          return { start: dateToInput(start), end: dateToInput(end) };
+        }
+
+        function dateToInput(date) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
 
         const setTab = (nextTab) => {
           tab.value = nextTab;
           mobileMenuOpen.value = false;
         };
 
-        const currentTabLabel = computed(() => navItems.find(item => item.id === tab.value)?.label || 'Dashboard');
-
         const runServer = (method, payload, onSuccess) => {
           if (!window.google?.script?.run) {
             loading.value = false;
             console.warn('google.script.run indisponível fora do Google Apps Script.');
             if (method === 'getData') onSuccess([]);
+            if (method === 'getConfiguracoes') onSuccess({ vendedorNome: '' });
+            if (method === 'saveConfiguracoes' || method === 'saveVenda' || method === 'softDelete') onSuccess({ success: true });
             return;
           }
 
@@ -488,9 +717,35 @@
           });
         };
 
+        const fetchConfig = () => {
+          loading.value = true;
+          runServer('getConfiguracoes', undefined, data => {
+            configForm.value = { vendedorNome: data?.vendedorNome || '' };
+            loading.value = false;
+          });
+        };
+
+        const saveConfig = () => {
+          loading.value = true;
+          runServer('saveConfiguracoes', configForm.value, () => {
+            loading.value = false;
+            alert('Configurações salvas com sucesso.');
+          });
+        };
+
+        const normalizeVendaForSave = (item) => ({
+          ...item,
+          valorBem: Number(item.valorBem || 0),
+          valorParcela: Number(item.valorParcela || 0),
+          cota: Number(item.cota || 0),
+          lanceValor: Number(item.lanceValor || 0),
+          descontoPrimeiraParcela: Number(item.descontoPrimeiraParcela || 0),
+          contemplacaoGarantida: Boolean(item.contemplacaoGarantida)
+        });
+
         const save = () => {
           loading.value = true;
-          runServer('saveVenda', form.value, () => {
+          runServer('saveVenda', normalizeVendaForSave(form.value), () => {
             showModal.value = false;
             fetchData();
           });
@@ -512,9 +767,7 @@
         };
 
         const openModal = (item = null) => {
-          form.value = item
-            ? { ...item }
-            : { uuid: '', nome: '', cpf: '', proposta: '', categoria: 'Carro', valorBem: 0, valorParcela: 0, cota: 1 };
+          form.value = item ? { ...defaultVenda(), ...item } : defaultVenda();
           showModal.value = true;
         };
 
@@ -535,25 +788,37 @@
           return total;
         };
 
+        const isWithinPeriod = (iso, filter) => {
+          const date = parseDate(iso);
+          if (!date) return false;
+          const start = filter.start ? parseDate(filter.start) : null;
+          const end = filter.end ? parseDate(filter.end) : null;
+          if (start) start.setHours(0, 0, 0, 0);
+          if (end) end.setHours(23, 59, 59, 999);
+          return (!start || date >= start) && (!end || date <= end);
+        };
+
+        const dashboardRows = computed(() => db.value.filter(item => isWithinPeriod(item.data, dashboardFilter.value)));
+        const reportRows = computed(() => db.value.filter(item => isWithinPeriod(item.data, reportFilter.value)));
+        const reportTotal = computed(() => reportRows.value.reduce((total, item) => total + calculateComissao(item), 0));
+
         const stats = computed(() => {
           const now = new Date();
-          let mesTotal = 0;
           let anoTotal = 0;
 
           db.value.forEach(item => {
-            const val = calculateComissao(item);
-            const dataVenda = new Date(item.data);
-            if (Number.isNaN(dataVenda.getTime())) return;
-
-            if (dataVenda.getFullYear() === now.getFullYear()) {
-              anoTotal += val;
-              if (dataVenda.getMonth() === now.getMonth()) {
-                mesTotal += val;
-              }
+            const dataVenda = parseDate(item.data);
+            if (dataVenda && dataVenda.getFullYear() === now.getFullYear()) {
+              anoTotal += calculateComissao(item);
             }
           });
 
-          return { mes: mesTotal, ano: anoTotal };
+          return {
+            periodoComissao: dashboardRows.value.reduce((total, item) => total + calculateComissao(item), 0),
+            ano: anoTotal,
+            vendasAtivas: dashboardRows.value.length,
+            valorTotalVendas: dashboardRows.value.reduce((total, item) => total + Number(item.valorBem || 0), 0)
+          };
         });
 
         const paginatedData = computed(() => {
@@ -563,20 +828,80 @@
 
         const totalPages = computed(() => Math.ceil(db.value.length / itemsPerPage) || 1);
 
+        function parseDate(value) {
+          if (!value) return null;
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? null : date;
+        }
+
         const formatDate = (iso) => {
-          if (!iso) return '-';
-          const date = new Date(iso);
-          return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR');
+          const date = parseDate(iso);
+          return date ? date.toLocaleDateString('pt-BR') : '-';
+        };
+
+        const formatCurrency = (value) => Number(value || 0).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        });
+
+        const calculateAge = (birthDate) => {
+          const birth = parseDate(birthDate);
+          if (!birth) return '';
+          const today = new Date();
+          let age = today.getFullYear() - birth.getFullYear();
+          const monthDiff = today.getMonth() - birth.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+          return Math.max(age, 0);
+        };
+
+        const resetDashboardFilter = () => {
+          dashboardFilter.value = defaultPeriod();
+        };
+
+        const printReport = () => {
+          previewReport.value = true;
+          setTimeout(() => {
+            const report = document.getElementById('report-canvas');
+            if (!report) return;
+            const printWindow = window.open('', '_blank', 'width=900,height=1200');
+            if (!printWindow) {
+              alert('Permita pop-ups para gerar o PDF.');
+              return;
+            }
+            printWindow.document.write(`
+              <html>
+                <head>
+                  <title>Relatório de Comissões - Brava Moto</title>
+                  <script src="https://cdn.tailwindcss.com"><\/script>
+                  <style>
+                    @page { size: A4; margin: 0; }
+                    body { margin: 0; background: #fff; font-family: Arial, sans-serif; }
+                    .report-paper { width: 210mm; min-height: 297mm; padding: 18mm; box-sizing: border-box; color: #0f172a; }
+                  </style>
+                </head>
+                <body>${report.outerHTML}</body>
+              </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
+          }, 0);
         };
 
         watch(tab, () => { currentPage.value = 1; });
-        onMounted(fetchData);
+        onMounted(() => {
+          fetchConfig();
+          fetchData();
+        });
 
         return {
-          navItems, tab, db, loading, mobileMenuOpen, showModal, showFinModal, form, activeFin,
+          navItems, tab, db, loading, mobileMenuOpen, showModal, showFinModal, previewReport,
+          form, activeFin, configForm, dashboardFilter, reportFilter, profileName,
           currentPage, itemsPerPage, paginatedData, totalPages, currentTabLabel,
-          setTab, openModal, openFinanceiroModal, save, saveFinanceiro,
-          confirmDelete, calculateComissao, stats, formatDate
+          dashboardRows, reportRows, reportTotal,
+          setTab, openModal, openFinanceiroModal, save, saveFinanceiro, saveConfig,
+          confirmDelete, calculateComissao, calculateAge, resetDashboardFilter, printReport,
+          stats, formatDate, formatCurrency
         };
       }
     }).mount('#app');
