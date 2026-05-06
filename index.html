@@ -735,6 +735,7 @@
 
         const normalizeVendaForSave = (item) => ({
           ...item,
+          dataNascimento: dateOnlyForInput(item.dataNascimento),
           valorBem: Number(item.valorBem || 0),
           valorParcela: Number(item.valorParcela || 0),
           cota: Number(item.cota || 0),
@@ -767,7 +768,7 @@
         };
 
         const openModal = (item = null) => {
-          form.value = item ? { ...defaultVenda(), ...item } : defaultVenda();
+          form.value = item ? { ...defaultVenda(), ...item, dataNascimento: dateOnlyForInput(item.dataNascimento) } : defaultVenda();
           showModal.value = true;
         };
 
@@ -830,9 +831,38 @@
 
         function parseDate(value) {
           if (!value) return null;
-          const date = new Date(value);
+          if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+
+          const text = String(value).trim();
+          if (!text) return null;
+
+          const isoDateOnly = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (isoDateOnly) {
+            return new Date(Number(isoDateOnly[1]), Number(isoDateOnly[2]) - 1, Number(isoDateOnly[3]));
+          }
+
+          const isoDateTime = text.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+          if (isoDateTime) {
+            const date = new Date(text);
+            if (!Number.isNaN(date.getTime())) return date;
+            return new Date(Number(isoDateTime[1]), Number(isoDateTime[2]) - 1, Number(isoDateTime[3]));
+          }
+
+          const brDate = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (brDate) return new Date(Number(brDate[3]), Number(brDate[2]) - 1, Number(brDate[1]));
+
+          const date = new Date(text);
           return Number.isNaN(date.getTime()) ? null : date;
         }
+
+        const dateOnlyForInput = (value) => {
+          if (!value) return '';
+          const text = String(value).trim();
+          const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (isoDate) return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+          const date = parseDate(value);
+          return date ? dateToInput(date) : '';
+        };
 
         const formatDate = (iso) => {
           const date = parseDate(iso);

@@ -204,11 +204,11 @@ Rodapé/assinatura: @2026 - Sistema Apollo Eficiente - SAE - Leo.
 
 6. Funções Principais do Backend (Código.gs)
 
-setup(): Inicializa db_vendas e db_configuracoes e adiciona cabeçalhos ausentes para evolução incremental do schema.
+setup(): Inicializa db_vendas e db_configuracoes, adiciona cabeçalhos ausentes para evolução incremental do schema e normaliza a coluna dataNascimento como texto yyyy-MM-dd.
 
 getData(): Recupera todos os registros ativos (deleted_at nulo).
 
-saveVenda(obj): Função dual que normaliza números/booleans e insere novos registros (com UUID) ou atualiza registros existentes.
+saveVenda(obj): Função dual que normaliza números/booleans, padroniza dataNascimento como yyyy-MM-dd e insere novos registros (com UUID) ou atualiza registros existentes.
 
 softDelete(uuid): Marca um registro com timestamp em deleted_at para removê-lo da visão do usuário sem apagar os dados fisicamente.
 
